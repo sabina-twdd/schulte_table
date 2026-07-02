@@ -519,7 +519,9 @@
     // 遊戲 / 結算
     el.abortBtn.addEventListener("click", abortGame);
     el.againBtn.addEventListener("click", ()=>{
-      state.seed = state.res.seed; state.size = state.res.size; state.hint = state.res.hint;
+      // 再玩一次：沿用難度/提醒，但換一個新題號
+      state.size = state.res.size; state.hint = state.res.hint;
+      state.seed = newSeed();
       startGame();
     });
     el.shareBtn.addEventListener("click", shareResult);
