@@ -179,7 +179,7 @@ h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
 /* 方格盤 */
 .board{display:grid;gap:7px;touch-action:manipulation;}
 .cell{aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:var(--ink-3);color:var(--text);
-  font-family:var(--mono);font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;
   user-select:none;-webkit-user-select:none;transition:transform .08s, background .12s, border-color .12s, color .12s;}
 .cell:active{transform:scale(.94);}
 .cell.done{background:var(--go-dim);border-color:var(--go);color:var(--go);opacity:.6;cursor:default;}  /* 已點過（提醒模式開才會留） */
