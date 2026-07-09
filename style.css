@@ -90,6 +90,22 @@ header{margin-bottom:20px;padding-right:44px;}
 h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
 .sub{font-size:12px;color:var(--muted);margin-top:7px;}
 
+/* ---------- 帳號列（Google 登入 / 使用者資訊） ---------- */
+.account{display:flex;justify-content:flex-end;align-items:center;margin-bottom:14px;min-height:38px;}
+.acct-login{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;
+  border:1px solid var(--line);background:var(--ink-2);color:var(--text);
+  font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+.acct-login:hover{border-color:var(--signal);}
+.acct-login svg{flex:none;}
+.acct-user{display:inline-flex;align-items:center;gap:10px;background:var(--ink-2);
+  border:1px solid var(--line-soft);border-radius:999px;padding:5px 6px 5px 6px;}
+.acct-photo{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;
+  border:1px solid var(--line);background:var(--ink-3);display:block;}
+.acct-name{font-size:13px;font-weight:600;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acct-logout{background:none;border:none;color:var(--muted);font-family:var(--sans);font-size:12px;
+  cursor:pointer;padding:5px 10px;border-radius:999px;transition:.15s;}
+.acct-logout:hover{color:var(--signal);background:var(--ink-3);}
+
 /* ---------- 卡片與表單元件 ---------- */
 .card{background:var(--ink-2);border:1px solid var(--line-soft);border-radius:var(--radius);padding:18px;}
 .field-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin:0 0 9px;}
@@ -170,7 +186,31 @@ h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
 .hist-when{font-size:12px;color:var(--muted);}
 .hist-mode{font-size:10px;color:var(--muted-2);margin-top:2px;}
 .hist-time{font-family:var(--mono);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;}
-.empty-hint{text-align:center;color:var(--muted);padding:24px 0;font-size:14px;}
+.empty-hint{text-align:center;color:var(--muted);padding:24px 0;font-size:14px;line-height:1.6;}
+.empty-hint small{color:var(--muted-2);font-size:11px;}
+
+/* ---------- 玩家排行榜 ---------- */
+/* 提醒開/關 分頁 */
+.lb-htabs{display:flex;gap:6px;background:var(--ink-3);border:1px solid var(--line-soft);
+  border-radius:11px;padding:4px;margin-bottom:12px;}
+.lb-htab{flex:1;padding:9px 0;border:none;border-radius:8px;background:none;color:var(--muted);
+  font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+.lb-htab.on{background:var(--ink-2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.25);}
+
+/* 榜單 */
+.lb-list{display:flex;flex-direction:column;}
+.lb-row{display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid var(--line-soft);}
+.lb-row:last-child{border-bottom:none;}
+.lb-row.me{background:var(--chip-on-bg);border-radius:9px;padding-left:9px;padding-right:9px;
+  border-bottom-color:transparent;}
+.lb-rank{font-family:var(--mono);font-weight:700;font-size:14px;min-width:26px;text-align:center;
+  color:var(--muted);flex:none;}
+.lb-row.me .lb-rank{color:var(--signal);}
+.lb-av{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;
+  border:1px solid var(--line);background:var(--ink-3);}
+.lb-av-empty{background:var(--ink-3);}
+.lb-name{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-time{font-family:var(--mono);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;flex:none;}
 
 /* ---------- 遊戲畫面 ---------- */
 .game-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -212,6 +252,11 @@ h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
 .result .linkbox{text-align:left;margin-top:16px;}
 /* 分享成績是多行文字，保留換行顯示 */
 .result .lk-url{white-space:pre-wrap;}
+
+/* 結算頁的排行榜狀態小字 */
+.lb-note{font-size:13px;margin-top:10px;min-height:18px;}
+.lb-note.good{color:var(--go);font-weight:600;}
+.lb-note.muted{color:var(--muted);}
 
 footer{text-align:center;margin-top:26px;font-size:11px;color:var(--muted-2);line-height:1.6;}
 

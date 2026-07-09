@@ -7,7 +7,8 @@
      4) 畫面切換 / 主題 / 戰績渲染
      5) 遊戲流程（開始、計時、點擊、結算）
      6) 挑戰連結、複製
-     7) init()：載入設定、綁事件、開場
+     7) Firebase：登入 / 上傳成績 / 玩家排行榜
+     8) init()：載入設定、綁事件、開場
    ============================================================ */
 (function(){
   "use strict";
@@ -57,6 +58,13 @@
 
   // 毫秒 -> "0.00" 秒字串
   const fmt = ms => (ms / 1000).toFixed(2);
+
+  // 轉義使用者輸入（暱稱來自 Google，仍防禦性 escape 再塞進 innerHTML）
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => (
+      { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]
+    ));
+  }
 
   // 時間戳 -> 好讀的日期時間
   function fmtWhen(ts){
@@ -111,7 +119,9 @@
     // 戰績（localStorage）
     stats: [],
     // 結算暫存
-    res: { seed:"", size:5, hint:true, errors:0 }
+    res: { seed:"", size:5, hint:true, errors:0 },
+    // 排行榜檢視（目前在看哪個難度/提醒模式的榜）
+    lbSize:5, lbHint:true
   };
 
   const LABELS = { 5:"入門", 6:"進階", 7:"困難", 8:"魔王" };
@@ -124,8 +134,13 @@
     themeBtn:$("themeBtn"), iconMoon:$("iconMoon"), iconSun:$("iconSun"),
     screens:{
       setup:$("screen-setup"), stats:$("screen-stats"),
-      game:$("screen-game"), result:$("screen-result")
+      game:$("screen-game"), result:$("screen-result"),
+      leaderboard:$("screen-leaderboard")
     },
+    // 帳號列
+    accountBar:$("accountBar"), loginBtn:$("loginBtn"),
+    acctUser:$("acctUser"), acctPhoto:$("acctPhoto"),
+    acctName:$("acctName"), logoutBtn:$("logoutBtn"),
     // setup
     banner:$("challengeBanner"), bannerText:$("challengeText"),
     sizeChips:$("sizeChips"), hintToggle:$("hintToggle"),
@@ -133,6 +148,10 @@
     linkbox:$("linkbox"), linkUrl:$("linkUrl"), copyBtn:$("copyBtn"),
     pbGrid:$("pbGrid"), viewStatsRow:$("viewStatsRow"), viewStatsBtn:$("viewStatsBtn"),
     newChallengeCard:$("newChallengeCard"), newChallengeBtn:$("newChallengeBtn"),
+    // 排行榜
+    leaderboardBtn:$("leaderboardBtn"),
+    lbSizeChips:$("lbSizeChips"), lbHintTabs:$("lbHintTabs"),
+    lbList:$("lbList"), lbBackBtn:$("lbBackBtn"), resLbNote:$("resLbNote"),
     // stats
     pbGridStats:$("pbGridStats"), histCard:$("histCard"),
     statsBackBtn:$("statsBackBtn"), clearStatsBtn:$("clearStatsBtn"),
@@ -372,6 +391,7 @@
     el.resMeta.innerHTML = meta;
     el.resLinkbox.classList.add("hidden");
 
+    uploadScore(state.res);  // 上傳玩家排行榜（未登入會提示登入）
     refreshStatsSummary();   // 更新設定頁摘要
     showScreen("result");
   }
@@ -446,6 +466,104 @@
     el.linkbox.classList.add("hidden");
     applyChallengeUI();
     showScreen("setup");
+  }
+
+  /* =========================================================
+     7.5) Firebase：登入狀態 / 上傳成績 / 玩家排行榜
+     ========================================================= */
+
+  // 依登入狀態更新帳號列
+  function renderAccount(u){
+    el.loginBtn.classList.toggle("hidden", !!u);
+    el.acctUser.classList.toggle("hidden", !u);
+    if(u){
+      el.acctName.textContent = u.displayName || "玩家";
+      if(u.photoURL){ el.acctPhoto.src = u.photoURL; el.acctPhoto.classList.remove("hidden"); }
+      else el.acctPhoto.classList.add("hidden");
+    }
+  }
+
+  // Firebase 就緒後：綁登入/登出、監聽登入狀態
+  function bindFirebase(){
+    const LB = window.LB;
+    if(!LB) return;
+    el.loginBtn.addEventListener("click", ()=>{
+      LB.login().catch(err => alert("登入失敗：" + (err && err.message ? err.message : err)));
+    });
+    el.logoutBtn.addEventListener("click", ()=> LB.logout());
+    LB.onAuth(renderAccount);
+  }
+
+  // 上傳這局成績（結算時呼叫，不阻塞畫面）
+  function uploadScore(res){
+    const LB = window.LB;
+    if(!LB || !LB.currentUser){
+      el.resLbNote.innerHTML = "登入 Google 就能把成績傳上玩家排行榜";
+      el.resLbNote.className = "lb-note muted";
+      return;
+    }
+    el.resLbNote.textContent = "上傳中…";
+    el.resLbNote.className = "lb-note muted";
+    LB.submitScore(res).then(r=>{
+      if(r.skipped){ el.resLbNote.textContent = ""; }
+      else if(r.improved){
+        el.resLbNote.innerHTML = "🏆 已更新你的玩家排行榜成績";
+        el.resLbNote.className = "lb-note good";
+      } else {
+        el.resLbNote.innerHTML = "排行榜個人最佳 " + fmt(r.best) + " 秒 · 這次沒更快";
+        el.resLbNote.className = "lb-note muted";
+      }
+    }).catch(()=>{
+      el.resLbNote.innerHTML = "排行榜上傳失敗（稍後再試）";
+      el.resLbNote.className = "lb-note muted";
+    });
+  }
+
+  // 讀取並畫出目前選定難度/提醒的排行榜
+  function renderLeaderboard(){
+    const LB = window.LB;
+    // 更新 tab 視覺狀態
+    [...el.lbSizeChips.children].forEach(b => b.classList.toggle("on", +b.dataset.size === state.lbSize));
+    [...el.lbHintTabs.children].forEach(b => b.classList.toggle("on", (b.dataset.hint === "1") === state.lbHint));
+
+    if(!LB){
+      el.lbList.innerHTML = '<div class="empty-hint">排行榜載入中…（Firebase 尚未就緒）</div>';
+      return;
+    }
+    el.lbList.innerHTML = '<div class="empty-hint">載入中…</div>';
+    const myUid = LB.currentUser && LB.currentUser.uid;
+    LB.topScores(state.lbSize, state.lbHint, 50).then(rows=>{
+      if(!rows.length){
+        el.lbList.innerHTML = '<div class="empty-hint">這個榜還沒有成績，來當第一名！</div>';
+        return;
+      }
+      el.lbList.innerHTML = rows.map((r, i)=>{
+        const rank = i + 1;
+        const badge = rank <= 3 ? ["🥇","🥈","🥉"][rank-1] : rank;
+        const me = (myUid && r.uid === myUid) ? " me" : "";
+        const av = r.photo
+          ? '<img class="lb-av" src="'+escapeHtml(r.photo)+'" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility=\'hidden\'">'
+          : '<div class="lb-av lb-av-empty"></div>';
+        return '<div class="lb-row'+me+'">'+
+                 '<div class="lb-rank">'+badge+'</div>'+
+                 av+
+                 '<div class="lb-name">'+escapeHtml(r.name || "玩家")+'</div>'+
+                 '<div class="lb-time">'+fmt(r.ms)+'</div>'+
+               '</div>';
+      }).join("");
+    }).catch(err=>{
+      // 最常見：缺複合索引（size==、hint==、orderBy ms）→ console 會給建立連結
+      el.lbList.innerHTML = '<div class="empty-hint">讀取失敗，請稍後再試'+
+        '<br><small>第一次使用可能需在 Firebase 建立索引（見 console）</small></div>';
+      console.error("[排行榜] 讀取失敗：", err);
+    });
+  }
+
+  function openLeaderboard(){
+    state.lbSize = state.size;   // 預設先看目前選的難度/提醒
+    state.lbHint = state.hint;
+    renderLeaderboard();
+    showScreen("leaderboard");
   }
 
   /* =========================================================
@@ -528,6 +646,21 @@
     el.resCopyBtn.addEventListener("click", ()=> copy(el.resLinkUrl.textContent, el.resCopyBtn, "複製成績"));
     el.resultBackBtn.addEventListener("click", ()=> showScreen("setup"));
     el.newChallengeBtn.addEventListener("click", newChallenge);
+
+    // ---- Firebase：登入 / 玩家排行榜 ----
+    if(window.LB) bindFirebase();
+    else window.addEventListener("firebase-ready", bindFirebase, { once:true });
+
+    el.leaderboardBtn.addEventListener("click", openLeaderboard);
+    el.lbBackBtn.addEventListener("click", ()=> showScreen("setup"));
+    el.lbSizeChips.addEventListener("click", e=>{
+      const b = e.target.closest(".chip"); if(!b) return;
+      state.lbSize = +b.dataset.size; renderLeaderboard();
+    });
+    el.lbHintTabs.addEventListener("click", e=>{
+      const b = e.target.closest(".lb-htab"); if(!b) return;
+      state.lbHint = b.dataset.hint === "1"; renderLeaderboard();
+    });
 
     // ---- 開場渲染 ----
     applyChallengeUI();

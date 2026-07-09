@@ -10,6 +10,9 @@
 
   <!-- 邏輯（defer：等 HTML 解析完再執行，確保抓得到下面的元素） -->
   <script src="script.js" defer></script>
+
+  <!-- Firebase 整合層（ES module，會非同步載入 SDK 後掛上 window.LB） -->
+  <script type="module" src="firebase.js"></script>
 </head>
 <body>
 
@@ -33,6 +36,24 @@
       <h1>舒爾特方格</h1>
       <div class="sub">產生挑戰連結傳給朋友，大家玩一模一樣的方格比快</div>
     </header>
+
+    <!-- 帳號列：登入後成績才能上玩家排行榜（全站常駐顯示） -->
+    <div class="account" id="accountBar">
+      <button class="acct-login" id="loginBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
+          <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/>
+          <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4-3.1z"/>
+          <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 12 0 12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-5 6.7-5z"/>
+        </svg>
+        <span>使用 Google 登入</span>
+      </button>
+      <div class="acct-user hidden" id="acctUser">
+        <img class="acct-photo" id="acctPhoto" alt="" referrerpolicy="no-referrer" />
+        <span class="acct-name" id="acctName"></span>
+        <button class="acct-logout" id="logoutBtn">登出</button>
+      </div>
+    </div>
 
     <!-- =====================================================
          畫面切換：四個 <section>，同時只顯示一個
@@ -74,6 +95,7 @@
         <div class="btn-stack" style="margin-top:20px;">
           <button class="btn btn-primary" id="startBtn">開始</button>
           <button class="btn btn-ghost" id="makeLinkBtn">產生挑戰連結</button>
+          <button class="btn btn-ghost" id="leaderboardBtn">玩家排行榜</button>
         </div>
 
         <!-- 產生的連結（預設隱藏，按「產生挑戰連結」後顯示） -->
@@ -111,6 +133,30 @@
       </div>
     </section>
 
+    <!-- ---------- 排行榜畫面 ---------- -->
+    <section id="screen-leaderboard" class="hidden">
+      <p class="field-label">玩家排行榜 · 各難度最快紀錄</p>
+      <div class="card">
+        <!-- 難度切換 -->
+        <div class="chips" id="lbSizeChips" style="margin-bottom:10px;">
+          <button class="chip on" data-size="5">5×5</button>
+          <button class="chip"    data-size="6">6×6</button>
+          <button class="chip"    data-size="7">7×7</button>
+          <button class="chip"    data-size="8">8×8</button>
+        </div>
+        <!-- 提醒開/關切換 -->
+        <div class="lb-htabs" id="lbHintTabs">
+          <button class="lb-htab on" data-hint="1">提醒開</button>
+          <button class="lb-htab"    data-hint="0">提醒關</button>
+        </div>
+        <!-- 榜單（由 JS 填入） -->
+        <div class="lb-list" id="lbList"></div>
+      </div>
+      <div class="btn-stack" style="margin-top:16px;">
+        <button class="btn btn-ghost" id="lbBackBtn">← 回首頁</button>
+      </div>
+    </section>
+
     <!-- ---------- 遊戲畫面 ---------- -->
     <section id="screen-game" class="hidden">
       <div class="game-top">
@@ -136,6 +182,8 @@
         <div class="cap" id="resCap">完成</div>
         <div class="big-time"><span id="resTime">0.00</span><span class="unit">秒</span></div>
         <div class="rmeta" id="resMeta"></div>
+        <!-- 排行榜上傳狀態（登入才會上傳） -->
+        <div class="lb-note" id="resLbNote"></div>
         <div class="result-actions btn-stack">
           <button class="btn btn-primary" id="againBtn">再玩一次</button>
           <button class="btn btn-ghost" id="shareBtn">分享成績</button>
