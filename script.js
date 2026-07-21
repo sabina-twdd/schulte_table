@@ -132,6 +132,7 @@
   const $ = id => document.getElementById(id);
   const el = {
     themeBtn:$("themeBtn"), iconMoon:$("iconMoon"), iconSun:$("iconSun"),
+    helpBtn:$("helpBtn"), helpWrap:$("helpWrap"),
     screens:{
       setup:$("screen-setup"), stats:$("screen-stats"),
       game:$("screen-game"), result:$("screen-result"),
@@ -796,6 +797,17 @@
 
     // ---- 綁事件 ----
     el.themeBtn.addEventListener("click", toggleTheme);
+
+    // 玩法：點問號開合浮層，點外部自動收合（獨立於登入，一律可用）
+    el.helpBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      el.helpWrap.classList.toggle("open");
+    });
+    document.addEventListener("click", (e)=>{
+      if(el.helpWrap.classList.contains("open") && !el.helpWrap.contains(e.target)){
+        el.helpWrap.classList.remove("open");
+      }
+    });
 
     // 難度鈕（挑戰模式下鎖定）
     el.sizeChips.addEventListener("click", e=>{

@@ -78,12 +78,33 @@ body{
 /* ---------- 標題列（標題 + 右側圓鈕組） ---------- */
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
 .header-text{min-width:0;}
-.eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--signal);font-weight:600;margin-bottom:8px;}
+.eyebrow{font-size:11px;letter-spacing:.08em;color:var(--signal);font-weight:600;margin-bottom:8px;}
 h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
-.sub{font-size:12px;color:var(--muted);margin-top:7px;}
 
-/* 右側圓鈕組：Google 登入 + 主題切換並排 */
-.topbar{display:flex;align-items:center;gap:10px;flex:none;}
+/* ---------- 玩法（問號圓鈕 + 展開浮層） ---------- */
+.help{display:flex;}
+.help-btn{width:40px;height:40px;border-radius:50%;flex:none;cursor:pointer;transition:.15s;
+  border:1px solid var(--line);background:var(--ink-2);color:var(--muted);
+  font-family:var(--sans);font-size:19px;font-weight:700;line-height:1;
+  display:flex;align-items:center;justify-content:center;}
+.help-btn:hover{border-color:var(--signal);color:var(--signal);}
+/* 浮層貼齊整個按鈕組右緣往左展開；寬度依內容(max-content)自動撐開、不換行，
+   但上限鎖在視窗內(RWD)，極窄螢幕塞不下時內部可水平捲動、仍不換行 */
+.help-menu{position:absolute;top:48px;right:0;z-index:30;
+  width:max-content;max-width:calc(100vw - 24px);overflow-x:auto;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.28);opacity:0;visibility:hidden;transform:translateY(-4px);
+  transition:opacity .15s, transform .15s, visibility .15s;text-align:left;}
+.help.open .help-menu{opacity:1;visibility:visible;transform:translateY(0);}
+.help-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:600;margin:0 0 10px;}
+.help-list{list-style:none;margin:0;padding:0;}
+.help-list li{position:relative;padding-left:16px;font-size:13px;line-height:1.7;color:var(--text);white-space:nowrap;}
+.help-list li + li{margin-top:6px;}
+.help-list li::before{content:"";position:absolute;left:1px;top:.7em;width:5px;height:5px;
+  border-radius:50%;background:var(--signal);}
+
+/* 右側圓鈕組：Google 登入 + 主題切換並排（relative：當玩法浮層的定位基準，貼右緣展開） */
+.topbar{position:relative;display:flex;align-items:center;gap:10px;flex:none;}
 
 .theme-btn{
   width:40px;height:40px;border-radius:50%;flex:none;

@@ -21,12 +21,24 @@
     <!-- 標題列：左邊標題，右邊「Google 登入 + 深淺色切換」兩顆圓鈕並排 -->
     <header>
       <div class="header-text">
-        <div class="eyebrow">Schulte · 同題對戰</div>
+        <div class="eyebrow">專注度訓練 · 多人同題對戰</div>
         <h1>舒爾特方格</h1>
-        <div class="sub">產生挑戰連結傳給朋友，大家玩一模一樣的方格比快</div>
       </div>
 
       <div class="topbar">
+        <!-- 玩法：點問號展開說明浮層 -->
+        <div class="help" id="helpWrap">
+          <button class="help-btn" id="helpBtn" title="玩法" aria-label="玩法">?</button>
+          <div class="help-menu" id="helpMenu">
+            <p class="help-title">玩法</p>
+            <ul class="help-list">
+              <li>依序點擊 1 → n 的數字，全部點完即完成</li>
+              <li>計時越短越好，點錯會有提示</li>
+              <li>提醒模式：點過的數字會變色（關掉更難）</li>
+              <li>同題對戰：產生挑戰連結傳給朋友，大家玩一模一樣的方格比快</li>
+            </ul>
+          </div>
+        </div>
         <!-- 帳號：登入後成績才能上玩家排行榜（全站常駐顯示） -->
         <div class="account" id="accountBar">
           <!-- 未登入：只放 Google 圖示的圓鈕 -->
