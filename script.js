@@ -870,13 +870,14 @@
     });
 
     // 標題連點五下 → 進/出隱藏關卡
-    // （自己數次數而不用 MouseEvent.detail：手機觸控的 detail 不一定會累加）
+    // 用 pointerdown 而不是 click：手機上按下就算一次，不會被雙擊縮放 / 文字選取吃掉；
+    // 自己數次數也比 MouseEvent.detail 可靠（觸控的 detail 不一定累加）。
     let taps = 0, tapTimer = null;
-    el.titleTap.addEventListener("click", ()=>{
+    el.titleTap.addEventListener("pointerdown", ()=>{
       taps++;
       clearTimeout(tapTimer);
       if(taps >= 5){ taps = 0; toggleSecret(); return; }
-      tapTimer = setTimeout(()=>{ taps = 0; }, 600);   // 超過 0.6 秒沒下一下就重數
+      tapTimer = setTimeout(()=>{ taps = 0; }, 1500);   // 超過 1.5 秒沒下一下就重數
     });
 
     // 難度鈕（挑戰模式下鎖定）；兩排共用同一個處理
