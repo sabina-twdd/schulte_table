@@ -31,7 +31,7 @@
     <header>
       <div class="header-text">
         <div class="eyebrow">專注度訓練 · 多人同題對戰</div>
-        <h1>舒爾特方格</h1>
+        <h1 id="titleTap">舒爾特方格</h1>
       </div>
 
       <div class="topbar">
@@ -109,6 +109,13 @@
             <button class="chip"    data-size="6">6×6<span class="lbl">進階</span></button>
             <button class="chip"    data-size="7">7×7<span class="lbl">困難</span></button>
             <button class="chip"    data-size="8">8×8<span class="lbl">魔王</span></button>
+          </div>
+          <!-- 隱藏關卡：連點五下標題才會取代上面那排（純本機，不上排行榜） -->
+          <div class="chips secret hidden" id="sizeChipsMini">
+            <button class="chip" data-size="1">1×1<span class="lbl">秒殺</span></button>
+            <button class="chip" data-size="2">2×2<span class="lbl">熱身</span></button>
+            <button class="chip" data-size="3">3×3<span class="lbl">輕鬆</span></button>
+            <button class="chip" data-size="4">4×4<span class="lbl">小試</span></button>
           </div>
         </div>
 

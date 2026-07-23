@@ -95,7 +95,7 @@
     const seed = p.get("seed");
     if(!seed) return null;
     let size = parseInt(p.get("size"), 10);
-    if(![5,6,7,8].includes(size)) size = 5;
+    if(![5,6,7,8].includes(size)) size = 5;   // 隱藏關卡（1~4）不做挑戰連結
     const hint = p.get("hint") === "0" ? false : true;
     return { seed: seed.toUpperCase().slice(0, 12), size, hint };
   }
@@ -109,6 +109,7 @@
     hint: true,
     seed: null,
     challenge: null,   // 若從別人連結進來，這裡放 {seed,size,hint}
+    secret: false,     // 是否在隱藏關卡（1×1~4×4）；只在本次分頁有效，不寫 localStorage
     // 進行中的一局
     total: 25,
     expected: 1,
@@ -124,7 +125,9 @@
     lbSize:5, lbHint:true
   };
 
-  const LABELS = { 5:"入門", 6:"進階", 7:"困難", 8:"魔王" };
+  const LABELS = { 1:"秒殺", 2:"熱身", 3:"輕鬆", 4:"小試", 5:"入門", 6:"進階", 7:"困難", 8:"魔王" };
+  const SIZES = [5,6,7,8];          // 正式難度（可上排行榜）
+  const SECRET_SIZES = [1,2,3,4];   // 隱藏關卡（只存本機戰績）
 
   /* =========================================================
      3) 抓 DOM 元素（集中管理，方便維護）
@@ -132,6 +135,7 @@
   const $ = id => document.getElementById(id);
   const el = {
     themeBtn:$("themeBtn"), iconMoon:$("iconMoon"), iconSun:$("iconSun"),
+    titleTap:$("titleTap"),
     helpBtn:$("helpBtn"), helpWrap:$("helpWrap"),
     screens:{
       setup:$("screen-setup"), stats:$("screen-stats"),
@@ -145,7 +149,7 @@
     acctMenu:$("acctMenu"), acctName:$("acctName"), logoutBtn:$("logoutBtn"),
     // setup
     banner:$("challengeBanner"), bannerText:$("challengeText"),
-    sizeChips:$("sizeChips"), hintToggle:$("hintToggle"),
+    sizeChips:$("sizeChips"), sizeChipsMini:$("sizeChipsMini"), hintToggle:$("hintToggle"),
     startBtn:$("startBtn"), makeLinkBtn:$("makeLinkBtn"),
     linkbox:$("linkbox"), linkUrl:$("linkUrl"), copyBtn:$("copyBtn"),
     pbGrid:$("pbGrid"), viewStatsRow:$("viewStatsRow"), viewStatsBtn:$("viewStatsBtn"),
@@ -212,9 +216,14 @@
 
   // 把「個人最佳」畫進指定容器（設定頁和戰績頁共用）
   // 每格同時顯示「提醒開 / 提醒關」兩個成績
+  // 隱藏關卡是一個獨立的世界：進去只看得到 1~4，出來只看得到 5~8
+  function currentSizes(){
+    return state.secret ? SECRET_SIZES : SIZES;
+  }
+
   function renderBests(container){
     const best = bestBySizeHint();
-    container.innerHTML = [5,6,7,8].map(n=>{
+    container.innerHTML = currentSizes().map(n=>{
       const b = best[n] || {};
       const cell = (v)=>{
         const txt = v == null ? "—" : fmt(v);
@@ -231,13 +240,20 @@
     }).join("");
   }
 
+  // 目前模式下該顯示的紀錄（隱藏關卡只看 1~4，一般模式只看 5~8）
+  function visibleStats(){
+    const secret = state.secret;
+    return state.stats.filter(r => (r.size < 5) === secret);
+  }
+
   // 畫最近紀錄列表
   function renderRecent(){
-    if(state.stats.length === 0){
+    const rows = visibleStats();
+    if(rows.length === 0){
       el.histCard.innerHTML = '<div class="empty-hint">還沒有紀錄，玩一局就會出現</div>';
       return;
     }
-    el.histCard.innerHTML = state.stats.slice(0, 12).map(r=>{
+    el.histCard.innerHTML = rows.slice(0, 12).map(r=>{
       const mode = (r.hint ? "提醒開" : "提醒關") + (r.errors ? (" · " + r.errors + " 錯") : " · 全對") + " · " + r.seed;
       return '<div class="hist-item">'+
                '<div class="hist-left"><div class="hist-size">'+r.size+'</div>'+
@@ -251,16 +267,50 @@
   // 更新設定頁的戰績摘要（含「查看完整戰績」是否顯示）
   function refreshStatsSummary(){
     renderBests(el.pbGrid);
-    el.viewStatsRow.classList.toggle("hidden", state.stats.length === 0);
+    el.viewStatsRow.classList.toggle("hidden", visibleStats().length === 0);
   }
 
   /* =========================================================
      5) 挑戰模式 UI（鎖定難度/提醒、切換相關按鈕）
      ========================================================= */
+  // 兩排難度鈕（正式 + 隱藏）合起來當一組看待
+  function allSizeChips(){
+    return [...el.sizeChips.children, ...el.sizeChipsMini.children];
+  }
+
+  // 選定難度：跨兩排統一標記 .on
+  function selectSize(n){
+    state.size = n;
+    allSizeChips().forEach(b => b.classList.toggle("on", +b.dataset.size === n));
+    el.linkbox.classList.add("hidden");   // 設定改了，舊連結作廢
+  }
+
+  // 進出隱藏關卡（連點五下標題）：整個難度區換成 1~4，
+  // 並收起「產生挑戰連結 / 玩家排行榜」（隱藏關卡純本機遊玩）
+  function applySecretUI(){
+    const on = state.secret;
+    // 隱藏關卡整體換成綠色調（見 style.css 的 :root[data-secret]）
+    if(on) document.documentElement.dataset.secret = "1";
+    else delete document.documentElement.dataset.secret;
+    el.sizeChips.classList.toggle("hidden", on);
+    el.sizeChipsMini.classList.toggle("hidden", !on);
+    el.makeLinkBtn.classList.toggle("hidden", on || !!state.challenge);
+    el.leaderboardBtn.classList.toggle("hidden", on);
+    el.linkbox.classList.add("hidden");
+    refreshStatsSummary();   // 個人最佳跟著切換成 1~4 或 5~8
+  }
+
+  function toggleSecret(){
+    if(state.challenge) return;              // 挑戰模式下難度鎖定，不給切換
+    state.secret = !state.secret;
+    selectSize(state.secret ? 1 : 5);        // 換一組難度就給該組的預設值
+    applySecretUI();
+  }
+
   function applyChallengeUI(){
     const on = !!state.challenge;
     // 反映鎖定的難度/提醒到畫面
-    [...el.sizeChips.children].forEach(btn=>{
+    allSizeChips().forEach(btn=>{
       btn.classList.toggle("on", +btn.dataset.size === state.size);
       btn.disabled = on;
     });
@@ -268,7 +318,7 @@
     el.hintToggle.classList.toggle("locked", on);
 
     el.banner.classList.toggle("hidden", !on);
-    el.makeLinkBtn.classList.toggle("hidden", on);           // 挑戰者不需要再產生連結
+    el.makeLinkBtn.classList.toggle("hidden", on || state.secret);   // 挑戰者不需要再產生連結
     el.newChallengeCard.classList.toggle("hidden", !on);
     el.startBtn.textContent = on ? "開始挑戰" : "開始";
 
@@ -293,9 +343,12 @@
 
     // 依種子產生排列，動態建立格子
     const order = seededOrder(state.seed, n);
-    const fontSize = Math.max(13, Math.round(34 - (n - 5) * 4)) + "px";
+    const fontSize = Math.min(46, Math.max(13, Math.round(34 - (n - 5) * 4))) + "px";
     el.board.style.gridTemplateColumns = "repeat(" + n + ",minmax(0,1fr))";
     el.board.style.gap = n >= 7 ? "5px" : "7px";
+    // 隱藏關卡格子少，限制寬度並置中，免得 1×1 變成整頁大的方塊
+    el.board.style.maxWidth = n < 5 ? (n * 86) + "px" : "";
+    el.board.style.margin   = n < 5 ? "0 auto" : "";
     el.board.innerHTML = "";
     order.forEach(val=>{
       const c = document.createElement("button");
@@ -401,7 +454,14 @@
     el.resLinkbox.classList.add("hidden");
     el.resShareBox.classList.add("hidden");
 
-    uploadScore(state.res, rankable);  // 上傳玩家排行榜（未登入會提示登入；同題超過 2 次不列入）
+    // 隱藏關卡只存本機戰績：不上排行榜，也沒有同題挑戰可分享
+    el.shareBtn.classList.toggle("hidden", size < 5);
+    if(size < 5){
+      el.resLbNote.textContent = "隱藏關卡 · 只記錄在這台裝置";
+      el.resLbNote.className = "lb-note muted";
+    } else {
+      uploadScore(state.res, rankable);  // 上傳玩家排行榜（未登入會提示登入；同題超過 2 次不列入）
+    }
     refreshStatsSummary();   // 更新設定頁摘要
     showScreen("result");
   }
@@ -809,15 +869,24 @@
       }
     });
 
-    // 難度鈕（挑戰模式下鎖定）
-    el.sizeChips.addEventListener("click", e=>{
+    // 標題連點五下 → 進/出隱藏關卡
+    // （自己數次數而不用 MouseEvent.detail：手機觸控的 detail 不一定會累加）
+    let taps = 0, tapTimer = null;
+    el.titleTap.addEventListener("click", ()=>{
+      taps++;
+      clearTimeout(tapTimer);
+      if(taps >= 5){ taps = 0; toggleSecret(); return; }
+      tapTimer = setTimeout(()=>{ taps = 0; }, 600);   // 超過 0.6 秒沒下一下就重數
+    });
+
+    // 難度鈕（挑戰模式下鎖定）；兩排共用同一個處理
+    const onSizeClick = e=>{
       const btn = e.target.closest(".chip");
       if(!btn || state.challenge) return;
-      [...el.sizeChips.children].forEach(b => b.classList.remove("on"));
-      btn.classList.add("on");
-      state.size = +btn.dataset.size;
-      el.linkbox.classList.add("hidden");   // 設定改了，舊連結作廢
-    });
+      selectSize(+btn.dataset.size);
+    };
+    el.sizeChips.addEventListener("click", onSizeClick);
+    el.sizeChipsMini.addEventListener("click", onSizeClick);
 
     // 提醒開關
     el.hintToggle.addEventListener("click", ()=>{
@@ -844,13 +913,15 @@
     el.viewStatsBtn.addEventListener("click", ()=>{
       renderBests(el.pbGridStats);
       renderRecent();
-      el.clearStatsBtn.classList.toggle("hidden", state.stats.length === 0);
+      el.clearStatsBtn.classList.toggle("hidden", visibleStats().length === 0);
       showScreen("stats");
     });
     el.statsBackBtn.addEventListener("click", ()=> showScreen("setup"));
     el.clearStatsBtn.addEventListener("click", ()=>{
-      state.stats = [];
-      store.del("schulte:stats");
+      // 只清掉目前這個世界的紀錄（隱藏關卡 / 一般難度互不影響）
+      state.stats = state.stats.filter(r => (r.size < 5) !== state.secret);
+      if(state.stats.length) store.set("schulte:stats", JSON.stringify(state.stats));
+      else store.del("schulte:stats");
       renderBests(el.pbGridStats); renderRecent(); refreshStatsSummary();
       el.clearStatsBtn.classList.add("hidden");
     });

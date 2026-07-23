@@ -79,7 +79,8 @@ body{
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
 .header-text{min-width:0;}
 .eyebrow{font-size:11px;letter-spacing:.08em;color:var(--signal);font-weight:600;margin-bottom:8px;}
-h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
+h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;
+  cursor:default;-webkit-user-select:none;user-select:none;}   /* 連點三下解鎖隱藏關卡，避免反白 */
 
 /* ---------- 玩法（問號圓鈕 + 展開浮層） ---------- */
 .help{display:flex;}
@@ -154,6 +155,19 @@ h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.01em;}
 .chip:disabled{cursor:default;}
 .chip .lbl{display:block;font-family:var(--sans);font-size:10px;font-weight:600;color:var(--muted-2);margin-top:3px;letter-spacing:.04em;}
 .chip.on .lbl{color:var(--signal);}
+/* 隱藏關卡那排（連點五下標題才會取代原本的難度鈕） */
+.chips.secret .chip.on{border-color:var(--go);color:var(--text);background:var(--go-dim);}
+.chips.secret .chip.on .lbl{color:var(--go);}
+
+/* 進入隱藏關卡時，主色一律換成綠色調（開始鈕、提醒開關、進度條、眉標） */
+:root[data-secret] .btn-primary{background:var(--go);color:#06231b;}
+:root[data-secret] .toggle.on .switch{background:var(--go);}
+:root[data-secret] .progress i{background:var(--go);}
+:root[data-secret] .eyebrow{color:var(--go);}
+:root[data-secret] .t-num{color:var(--go);}
+:root[data-secret] .pb-tag.off{color:var(--go);}
+:root[data-secret] .result .rcode{color:var(--go);}
+:root[data-secret] .result .cap.pb{color:var(--go);}
 
 /* 提醒模式開關 */
 .toggle{display:flex;align-items:center;justify-content:space-between;
